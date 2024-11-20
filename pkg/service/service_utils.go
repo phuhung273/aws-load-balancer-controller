@@ -45,6 +45,7 @@ func (u *defaultServiceUtils) IsServicePendingFinalization(service *corev1.Servi
 
 // IsServiceSupported returns true if the service is supported by the controller
 func (u *defaultServiceUtils) IsServiceSupported(service *corev1.Service) bool {
+	// TODO: check this
 	if !service.DeletionTimestamp.IsZero() {
 		return false
 	}
@@ -62,6 +63,7 @@ func (u *defaultServiceUtils) IsServiceSupported(service *corev1.Service) bool {
 }
 
 func (u *defaultServiceUtils) checkAWSLoadBalancerTypeAnnotation(service *corev1.Service) bool {
+	// TODO: check this
 	lbType := ""
 	_ = u.annotationParser.ParseStringAnnotation(annotations.SvcLBSuffixLoadBalancerType, &lbType, service.Annotations)
 	if lbType == LoadBalancerTypeNLBIP {

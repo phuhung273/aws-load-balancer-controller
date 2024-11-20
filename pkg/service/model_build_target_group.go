@@ -379,6 +379,9 @@ func (t *defaultModelBuildTask) buildTargetType(_ context.Context, port corev1.S
 	if lbTargetType == LoadBalancerTargetTypeIP && !t.enableIPTargetType {
 		return "", errors.Errorf("unsupported targetType: %v when EnableIPTargetType is %v", lbTargetType, t.enableIPTargetType)
 	}
+	if lbTargetType == LoadBalancerTargetTypeALB && !t.enableALBTargetType {
+		return "", errors.Errorf("unsupported targetType: %v when EnableALBTargetType is %v", lbTargetType, t.enableALBTargetType)
+	}
 	if lbType == LoadBalancerTypeNLBIP || lbTargetType == LoadBalancerTargetTypeIP {
 		return elbv2model.TargetTypeIP, nil
 	}
@@ -387,6 +390,9 @@ func (t *defaultModelBuildTask) buildTargetType(_ context.Context, port corev1.S
 	}
 	if port.NodePort == 0 && t.service.Spec.AllocateLoadBalancerNodePorts != nil && !*t.service.Spec.AllocateLoadBalancerNodePorts {
 		return "", errors.New("unable to support instance target type with an unallocated NodePort")
+	}
+	if lbTargetType == LoadBalancerTargetTypeALB {
+		return elbv2model.TargetTypeALB, nil
 	}
 	return elbv2model.TargetTypeInstance, nil
 }

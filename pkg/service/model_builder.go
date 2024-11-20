@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
-	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"strconv"
 	"sync"
+
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -26,6 +27,7 @@ const (
 	LoadBalancerTypeExternal       = "external"
 	LoadBalancerTargetTypeIP       = "ip"
 	LoadBalancerTargetTypeInstance = "instance"
+	LoadBalancerTargetTypeALB      = "alb"
 	lbAttrsDeletionProtection      = "deletion_protection.enabled"
 )
 
@@ -39,7 +41,7 @@ type ModelBuilder interface {
 func NewDefaultModelBuilder(annotationParser annotations.Parser, subnetsResolver networking.SubnetsResolver,
 	vpcInfoProvider networking.VPCInfoProvider, vpcID string, trackingProvider tracking.Provider,
 	elbv2TaggingManager elbv2deploy.TaggingManager, ec2Client services.EC2, featureGates config.FeatureGates, clusterName string, defaultTags map[string]string,
-	externalManagedTags []string, defaultSSLPolicy string, defaultTargetType string, enableIPTargetType bool, serviceUtils ServiceUtils,
+	externalManagedTags []string, defaultSSLPolicy string, defaultTargetType string, enableIPTargetType bool, enableALBTargetType bool, serviceUtils ServiceUtils,
 	backendSGProvider networking.BackendSGProvider, sgResolver networking.SecurityGroupResolver, enableBackendSG bool,
 	disableRestrictedSGRules bool, logger logr.Logger) *defaultModelBuilder {
 	return &defaultModelBuilder{
@@ -57,6 +59,7 @@ func NewDefaultModelBuilder(annotationParser annotations.Parser, subnetsResolver
 		defaultSSLPolicy:         defaultSSLPolicy,
 		defaultTargetType:        elbv2model.TargetType(defaultTargetType),
 		enableIPTargetType:       enableIPTargetType,
+		enableALBTargetType:      enableALBTargetType,
 		backendSGProvider:        backendSGProvider,
 		sgResolver:               sgResolver,
 		ec2Client:                ec2Client,
@@ -89,6 +92,7 @@ type defaultModelBuilder struct {
 	defaultSSLPolicy    string
 	defaultTargetType   elbv2model.TargetType
 	enableIPTargetType  bool
+	enableALBTargetType bool
 	logger              logr.Logger
 }
 
@@ -107,6 +111,7 @@ func (b *defaultModelBuilder) Build(ctx context.Context, service *corev1.Service
 		featureGates:             b.featureGates,
 		serviceUtils:             b.serviceUtils,
 		enableIPTargetType:       b.enableIPTargetType,
+		enableALBTargetType:      b.enableALBTargetType,
 		ec2Client:                b.ec2Client,
 		enableBackendSG:          b.enableBackendSG,
 		disableRestrictedSGRules: b.disableRestrictedSGRules,
@@ -165,6 +170,7 @@ type defaultModelBuildTask struct {
 	featureGates        config.FeatureGates
 	serviceUtils        ServiceUtils
 	enableIPTargetType  bool
+	enableALBTargetType bool
 	ec2Client           services.EC2
 	logger              logr.Logger
 

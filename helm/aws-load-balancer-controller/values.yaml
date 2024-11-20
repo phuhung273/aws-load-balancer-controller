@@ -355,6 +355,7 @@ controllerConfig:
   # EndpointsFailOpen: true
   # EnableServiceController: true
   # EnableIPTargetType: true
+  # EnableALBTargetType: true
   # SubnetsClusterTagCheck: true
   # NLBHealthCheckAdvancedConfig: true
   # ALBSingleSubnet: false

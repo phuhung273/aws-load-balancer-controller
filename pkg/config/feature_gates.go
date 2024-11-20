@@ -17,6 +17,7 @@ const (
 	EndpointsFailOpen            Feature = "EndpointsFailOpen"
 	EnableServiceController      Feature = "EnableServiceController"
 	EnableIPTargetType           Feature = "EnableIPTargetType"
+	EnableALBTargetType          Feature = "EnableALBTargetType"
 	EnableRGTAPI                 Feature = "EnableRGTAPI"
 	SubnetsClusterTagCheck       Feature = "SubnetsClusterTagCheck"
 	NLBHealthCheckAdvancedConfig Feature = "NLBHealthCheckAdvancedConfig"
@@ -55,6 +56,7 @@ func NewFeatureGates() FeatureGates {
 			EndpointsFailOpen:            true,
 			EnableServiceController:      true,
 			EnableIPTargetType:           true,
+			EnableALBTargetType:          false,
 			EnableRGTAPI:                 false,
 			SubnetsClusterTagCheck:       true,
 			NLBHealthCheckAdvancedConfig: true,
