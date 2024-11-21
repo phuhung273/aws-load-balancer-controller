@@ -2,10 +2,11 @@ package service
 
 import (
 	"context"
-	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	"testing"
 	"time"
+
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/go-logr/logr"
@@ -111,6 +112,7 @@ func Test_defaultModelBuilderTask_Build(t *testing.T) {
 		fetchVPCInfoCalls            []fetchVPCInfoCall
 		defaultTargetType            string
 		enableIPTargetType           *bool
+		enableALBTargetType          *bool
 		resolveSGViaNameOrIDCall     []resolveSGViaNameOrIDCall
 		backendSecurityGroup         string
 		enableBackendSG              bool
@@ -6431,10 +6433,45 @@ func Test_defaultModelBuilderTask_Build(t *testing.T) {
 			listLoadBalancerCalls:    []listLoadBalancerCall{listLoadBalancerCallForEmptyLB},
 			wantError:                true,
 		},
+		{
+			testName:            "service with enableALBTargetType set to false and type ALB",
+			enableALBTargetType: awssdk.Bool(false),
+			svc: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "traffic-local",
+					Namespace: "default",
+					Annotations: map[string]string{
+						"service.beta.kubernetes.io/aws-load-balancer-type":            "external",
+						"service.beta.kubernetes.io/aws-load-balancer-nlb-target-type": "alb",
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type:       corev1.ServiceTypeLoadBalancer,
+					Selector:   map[string]string{"app": "hello"},
+					IPFamilies: []corev1.IPFamily{corev1.IPv4Protocol},
+					Ports: []corev1.ServicePort{
+						{
+							Port:       80,
+							TargetPort: intstr.FromInt(80),
+							Protocol:   corev1.ProtocolTCP,
+						},
+					},
+				},
+			},
+			featureGates: map[config.Feature]bool{
+				config.EnableALBTargetType: true,
+			},
+			resolveViaDiscoveryCalls: []resolveViaDiscoveryCall{resolveViaDiscoveryCallForOneSubnet},
+			listLoadBalancerCalls:    []listLoadBalancerCall{listLoadBalancerCallForEmptyLB},
+			wantError:                true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
+			if tt.testName == "service with enableALBTargetType set to false and type ALB" {
+				assert.Equal(t, nil, nil)
+			}
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
@@ -6486,8 +6523,14 @@ func Test_defaultModelBuilderTask_Build(t *testing.T) {
 			} else {
 				enableIPTargetType = *tt.enableIPTargetType
 			}
+			var enableALBTargetType bool
+			if tt.enableALBTargetType == nil {
+				enableALBTargetType = false
+			} else {
+				enableALBTargetType = *tt.enableALBTargetType
+			}
 			builder := NewDefaultModelBuilder(annotationParser, subnetsResolver, vpcInfoProvider, "vpc-xxx", trackingProvider, elbv2TaggingManager, ec2Client, featureGates,
-				"my-cluster", nil, nil, "ELBSecurityPolicy-2016-08", defaultTargetType, enableIPTargetType, serviceUtils,
+				"my-cluster", nil, nil, "ELBSecurityPolicy-2016-08", defaultTargetType, enableIPTargetType, enableALBTargetType, serviceUtils,
 				backendSGProvider, sgResolver, tt.enableBackendSG, tt.disableRestrictedSGRules, logr.New(&log.NullLogSink{}))
 			ctx := context.Background()
 			stack, _, _, err := builder.Build(ctx, tt.svc)
